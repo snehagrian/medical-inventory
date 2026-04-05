@@ -1,0 +1,46 @@
+# ── JVM Crash Logs ───────────────────────────────────────────
+hs_err_pid*.log
+replay_pid*.log
+
+# ── Java / Maven (backend) ───────────────────────────────────
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+.mvn/wrapper/maven-wrapper.jar
+
+# ── Java IDE artifacts ────────────────────────────────────────
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+*.iws
+*.iml
+*.ipr
+
+# ── Node / Angular (frontend) ────────────────────────────────
+medical-inventory-ui/node_modules/
+medical-inventory-ui/dist/
+medical-inventory-ui/tmp/
+medical-inventory-ui/out-tsc/
+medical-inventory-ui/bazel-out/
+medical-inventory-ui/.angular/
+medical-inventory-ui/coverage/
+medical-inventory-ui/typings/
+npm-debug.log
+yarn-error.log
+testem.log
+libpeerconnection.log
+__screenshots__/
+.sass-cache/
+*.sublime-workspace
+*.launch
+
+# ── IDE ───────────────────────────────────────────────────────
+.vscode/
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

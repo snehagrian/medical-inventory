@@ -1,0 +1,53 @@
+<div class="auth-page">
+	<mat-card class="auth-card">
+		<mat-card-content>
+			<div class="auth-brand">
+				<div class="brand-icon">
+					<mat-icon>local_hospital</mat-icon>
+				</div>
+				<div class="brand-copy">
+					<div class="eyebrow">Medical Inventory</div>
+					<h2>Welcome back</h2>
+					<p>Log in to manage stock, monitor supplies, and keep inventory organized in one place.</p>
+				</div>
+			</div>
+
+			<form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form">
+				<mat-form-field appearance="outline" class="full-width">
+					<mat-label>Username</mat-label>
+					<input matInput formControlName="username" type="text" autocomplete="username" />
+					<mat-error *ngIf="loginForm.get('username')?.hasError('required') && loginForm.get('username')?.touched">
+						Username is required.
+					</mat-error>
+					<mat-error *ngIf="loginForm.get('username')?.hasError('minlength') && loginForm.get('username')?.touched">
+						Minimum 3 characters required.
+					</mat-error>
+				</mat-form-field>
+
+				<mat-form-field appearance="outline" class="full-width">
+					<mat-label>Password</mat-label>
+					<input matInput formControlName="password" type="password" autocomplete="current-password" />
+					<mat-error *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched">
+						Password is required.
+					</mat-error>
+					<mat-error *ngIf="loginForm.get('password')?.hasError('minlength') && loginForm.get('password')?.touched">
+						Minimum 6 characters required.
+					</mat-error>
+				</mat-form-field>
+
+				<mat-error *ngIf="errorMessage" class="form-error">{{ errorMessage }}</mat-error>
+
+				<div class="actions">
+					<button mat-flat-button color="primary" type="submit" class="primary-action">
+						<mat-icon>login</mat-icon>
+						Login
+					</button>
+					<button mat-stroked-button color="primary" type="button" (click)="goToSignup()" class="secondary-action">
+						<mat-icon>person_add</mat-icon>
+						Sign Up
+					</button>
+				</div>
+			</form>
+		</mat-card-content>
+	</mat-card>
+</div>
