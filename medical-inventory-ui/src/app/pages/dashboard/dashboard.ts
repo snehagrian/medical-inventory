@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { InventoryService } from '../services/inventory.services';
+import { AuthService } from '../services/auth.service';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -87,7 +88,8 @@ export class Dashboard implements OnInit {
   constructor(
     private readonly router: Router,
     private readonly inventoryService: InventoryService,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -813,6 +815,7 @@ export class Dashboard implements OnInit {
   }
 
   logout() {
+    this.authService.clearToken();
     this.router.navigate(['/']);
   }
 }
