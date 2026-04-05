@@ -109,6 +109,9 @@ cd medical_inventory_backend
 # Configure credentials in src/main/resources/application.properties
 # Update spring.datasource.username and spring.datasource.password as needed
 
+# Load local env vars (copy .env.example to .env and set your values)
+source .env
+
 ./mvnw spring-boot:run
 ```
 
