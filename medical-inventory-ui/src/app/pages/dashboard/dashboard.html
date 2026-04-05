@@ -1,0 +1,584 @@
+<div class="dashboard-page">
+	<div class="dashboard-container">
+		<mat-card class="dashboard-card hero-card no-print">
+			<mat-card-content class="hero-content">
+				<div class="hero-copy">
+					<div class="eyebrow">Inventory Control Center</div>
+					<h2>Medical Inventory Dashboard</h2>
+					<p>Manage inventory, track low stock, and monitor operational supply status.</p>
+				</div>
+
+				<button mat-stroked-button color="primary" type="button" class="logout-button" (click)="logout()">
+					<mat-icon>logout</mat-icon>
+					Logout
+				</button>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="dashboard-card toolbar-card no-print">
+			<mat-card-content class="toolbar-content">
+				<div class="toolbar-grid">
+					<mat-form-field appearance="outline" class="toolbar-field search-field">
+						<mat-label>Search inventory</mat-label>
+						<mat-icon matPrefix>search</mat-icon>
+						<input matInput type="text" placeholder="Search by item, category, or supplier" [(ngModel)]="searchTerm" (ngModelChange)="onFiltersChanged()" />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Category</mat-label>
+						<mat-select [(ngModel)]="selectedCategory" (selectionChange)="onFiltersChanged()">
+							<mat-option value="ALL">All Categories</mat-option>
+							<mat-option *ngFor="let category of availableCategories" [value]="category">{{ category }}</mat-option>
+						</mat-select>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Status</mat-label>
+						<mat-select [(ngModel)]="selectedStatus" (selectionChange)="onFiltersChanged()">
+							<mat-option value="ALL">All Statuses</mat-option>
+							<mat-option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</mat-option>
+						</mat-select>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Sort by</mat-label>
+						<mat-select [(ngModel)]="sortField" (selectionChange)="onSortFieldChange()">
+							<mat-option value="">No sorting</mat-option>
+							<mat-option value="quantity">Quantity</mat-option>
+							<mat-option value="unitPrice">Unit price</mat-option>
+							<mat-option value="expiryDate">Expiry date</mat-option>
+						</mat-select>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Page size</mat-label>
+						<mat-select [(ngModel)]="pageSize" (selectionChange)="onPageSizeChange(pageSize)">
+							<mat-option [value]="5">5 per page</mat-option>
+							<mat-option [value]="10">10 per page</mat-option>
+							<mat-option [value]="20">20 per page</mat-option>
+						</mat-select>
+					</mat-form-field>
+				</div>
+
+				<div class="toolbar-actions">
+					<button *ngIf="isLowStockView" mat-stroked-button color="primary" type="button" class="control-button" (click)="showAllItems()">
+						<mat-icon>view_list</mat-icon>
+						Show All Items
+					</button>
+					<button *ngIf="!isLowStockView" mat-stroked-button color="accent" type="button" class="control-button" (click)="showLowStockItems()">
+						<mat-icon>warning_amber</mat-icon>
+						Go to Low Stock Items
+					</button>
+					<button mat-stroked-button color="primary" type="button" class="control-button" (click)="toggleAnalytics()">
+						<mat-icon>bar_chart</mat-icon>
+						{{ showAnalytics ? 'Hide Analytics' : 'Show Analytics' }}
+					</button>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="dashboard-card analytics-card no-print" *ngIf="showAnalytics">
+			<mat-card-content class="analytics-content">
+				<div class="analytics-header">
+					<div>
+						<div class="section-label">Analytics</div>
+						<h3>Inventory Snapshot</h3>
+					</div>
+					<mat-form-field appearance="outline" class="analytics-filter-field">
+						<mat-label>Stock Visualization</mat-label>
+						<mat-select [ngModel]="analyticsStockFilter" (ngModelChange)="onAnalyticsStockFilterChange($event)">
+							<mat-option value="ALL">All Items</mat-option>
+							<mat-option value="IN_STOCK">In Stock</mat-option>
+							<mat-option value="LOW_STOCK">Low Stock</mat-option>
+							<mat-option value="OUT_OF_STOCK">Out of Stock</mat-option>
+							<mat-option value="NOT_IN_STOCK">Not In Stock</mat-option>
+						</mat-select>
+					</mat-form-field>
+				</div>
+
+				<div class="analytics-summary-grid">
+					<div class="summary-card">
+						<div class="summary-label">Total Items</div>
+						<div class="summary-value">{{ analyticsTotalItems }}</div>
+					</div>
+					<div class="summary-card">
+						<div class="summary-label">Low Stock Items</div>
+						<div class="summary-value">{{ analyticsLowStockItems }}</div>
+					</div>
+					<div class="summary-card">
+						<div class="summary-label">Available Items</div>
+						<div class="summary-value">{{ analyticsAvailableItems }}</div>
+					</div>
+					<div class="summary-card">
+						<div class="summary-label">Categories</div>
+						<div class="summary-value">{{ analyticsCategoriesCount }}</div>
+					</div>
+				</div>
+
+				<div class="analytics-charts-grid">
+					<div class="analytics-chart-card">
+						<div class="chart-title">Quantity Share by Category (Pie)</div>
+						<div class="chart-empty" *ngIf="analyticsPieChartData.length === 0">
+							No category data available.
+						</div>
+						<div class="chart-layout" *ngIf="analyticsPieChartData.length > 0">
+							<div class="chart-visual pie-chart" [style.background]="analyticsPieChartBackground"></div>
+							<div class="chart-legend">
+								<div class="chart-legend-item" *ngFor="let chartItem of analyticsPieChartData">
+									<span class="legend-dot" [style.background]="chartItem.color"></span>
+									<span class="legend-label">{{ chartItem.label }}</span>
+									<span class="legend-value">{{ chartItem.value }} ({{ chartItem.percentage | number:'1.0-1' }}%)</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="analytics-chart-card">
+						<div class="chart-title">Stock Health (Donut)</div>
+						<div class="chart-empty" *ngIf="analyticsDonutChartData.length === 0">
+							No stock distribution data available.
+						</div>
+						<div class="chart-layout" *ngIf="analyticsDonutChartData.length > 0">
+							<div class="chart-visual donut-chart" [style.background]="analyticsDonutChartBackground">
+								<div class="donut-inner">
+									{{ analyticsTotalItems }}
+									<span>Total</span>
+								</div>
+							</div>
+							<div class="chart-legend">
+								<div class="chart-legend-item" *ngFor="let chartItem of analyticsDonutChartData">
+									<span class="legend-dot" [style.background]="chartItem.color"></span>
+									<span class="legend-label">{{ chartItem.label }}</span>
+									<span class="legend-value">{{ chartItem.value }} ({{ chartItem.percentage | number:'1.0-1' }}%)</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="dashboard-card table-card no-print">
+			<mat-card-content class="table-content">
+				<div class="table-header-row">
+					<div>
+						<div class="section-label">{{ isLowStockView ? 'Low Stock Items' : 'Inventory Table' }}</div>
+						<h3>{{ isLowStockView ? 'Select low stock items to order' : 'Current stock overview' }}</h3>
+					</div>
+					<button *ngIf="!isLowStockView" mat-flat-button color="primary" type="button" class="control-button add-button" (click)="openAddForm()">
+						<mat-icon>add</mat-icon>
+						Add New Item
+					</button>
+				</div>
+
+				<p class="loading-text" *ngIf="isLoading">Loading inventory items...</p>
+				<p class="error-text" *ngIf="!isLoading && errorMessage">{{ errorMessage }}</p>
+
+				<div class="table-wrapper" *ngIf="!isLoading && filteredItems.length > 0 && !isLowStockView">
+					<table class="inventory-table">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Item</th>
+								<th>Category</th>
+								<th>Quantity</th>
+								<th>Reorder</th>
+								<th>Unit Price</th>
+								<th>Supplier</th>
+								<th>Expiry</th>
+								<th>Status</th>
+								<th class="actions-column">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr *ngFor="let inventoryRecord of getCurrentPageItems()">
+								<td>{{ inventoryRecord.id }}</td>
+								<td class="strong-cell">{{ inventoryRecord.itemName }}</td>
+								<td>{{ inventoryRecord.category }}</td>
+								<td>{{ inventoryRecord.quantity }}</td>
+								<td>{{ inventoryRecord.reorderLevel }}</td>
+								<td>{{ inventoryRecord.unitPrice }}</td>
+								<td>{{ inventoryRecord.supplierName }}</td>
+								<td>{{ inventoryRecord.expiryDate }}</td>
+								<td>
+									<span
+										class="status-badge"
+										[ngClass]="{
+											'badge-available': inventoryRecord.status === 'AVAILABLE' || inventoryRecord.status === 'Available',
+											'badge-active': inventoryRecord.status === 'ACTIVE' || inventoryRecord.status === 'Active',
+											'badge-low': inventoryRecord.status === 'LOW STOCK' || inventoryRecord.status === 'Low Stock' || inventoryRecord.status === 'LOW' || inventoryRecord.status === 'Low'
+										}"
+									>
+										{{ inventoryRecord.status }}
+									</span>
+								</td>
+								<td class="row-actions">
+									<button mat-icon-button color="primary" type="button" class="icon-action" aria-label="Edit item" (click)="openEditForm(inventoryRecord)">
+										<mat-icon>edit</mat-icon>
+									</button>
+									<button mat-icon-button color="warn" type="button" class="icon-action" aria-label="Delete item" (click)="onDelete(inventoryRecord.id)">
+										<mat-icon>delete</mat-icon>
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<div class="table-wrapper" *ngIf="!isLoading && filteredItems.length > 0 && isLowStockView">
+					<table class="inventory-table low-stock-table">
+						<thead>
+							<tr>
+								<th class="checkbox-column"></th>
+								<th>Item Name</th>
+								<th>Category</th>
+								<th>Quantity</th>
+								<th>Reorder Level</th>
+								<th>Expiry Date</th>
+								<th>Priority</th>
+								<th class="actions-column">Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr *ngFor="let inventoryRecord of getCurrentPageItems()">
+								<td class="checkbox-column">
+									<input
+										type="checkbox"
+										[checked]="isOrderItemSelected(inventoryRecord)"
+										(change)="toggleOrderSelection(inventoryRecord, $any($event.target).checked)"
+										aria-label="Select item for reorder"
+									/>
+								</td>
+								<td class="strong-cell">{{ inventoryRecord.itemName || inventoryRecord.item_name }}</td>
+								<td>{{ inventoryRecord.category }}</td>
+								<td>{{ inventoryRecord.quantity }}</td>
+								<td>{{ inventoryRecord.reorderLevel || inventoryRecord.reorder_level }}</td>
+								<td>{{ inventoryRecord.expiryDate || inventoryRecord.expiry_date }}</td>
+								<td>
+									<span class="priority-badge" [class]="'priority-badge ' + getPriorityBadgeClass(inventoryRecord)">
+										{{ calculatePriority(inventoryRecord) }}
+									</span>
+								</td>
+								<td class="row-actions">
+									<button mat-stroked-button color="primary" type="button" class="reorder-action" (click)="openReorderModal(inventoryRecord)">
+										<mat-icon>local_shipping</mat-icon>
+										Reorder Item
+									</button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<div class="empty-state" *ngIf="!isLoading && filteredItems.length === 0 && !errorMessage">
+					<mat-icon>inventory_2</mat-icon>
+					<p>No inventory items found.</p>
+				</div>
+
+				<div class="table-footer" *ngIf="!isLoading && filteredItems.length > 0 && !isLowStockView">
+					<div class="pagination-controls">
+						<button mat-icon-button type="button" class="page-button" aria-label="Previous page" (click)="prevPage()" [disabled]="currentPage === 1">
+							<mat-icon>chevron_left</mat-icon>
+						</button>
+						<span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+						<button mat-icon-button type="button" class="page-button" aria-label="Next page" (click)="nextPage()" [disabled]="currentPage === totalPages">
+							<mat-icon>chevron_right</mat-icon>
+						</button>
+					</div>
+				</div>
+
+				<div class="all-items-print-action" *ngIf="!isLowStockView && !isLoading && filteredItems.length > 0">
+					<button mat-stroked-button color="primary" type="button" class="control-button" (click)="exportAllItemsAsCsv()">
+						<mat-icon>description</mat-icon>
+						Export CSV
+					</button>
+					<button mat-flat-button color="accent" type="button" class="control-button" (click)="printAllItemsReport()">
+						<mat-icon>print</mat-icon>
+						Export PDF (Print)
+					</button>
+				</div>
+
+				<div class="order-list-panel" *ngIf="isLowStockView">
+					<div class="order-list-header">
+						<div>
+							<div class="section-label">Order List</div>
+							<h3>Selected low stock items</h3>
+						</div>
+						<button mat-stroked-button color="primary" type="button" class="control-button" (click)="exportLowStockAsCsv()" [disabled]="orderItems.length === 0">
+							<mat-icon>description</mat-icon>
+							Export CSV
+						</button>
+						<button mat-flat-button color="accent" type="button" class="control-button" (click)="printReorderReport()" [disabled]="orderItems.length === 0">
+							<mat-icon>print</mat-icon>
+							Export PDF (Print)
+						</button>
+					</div>
+
+					<div class="order-list-empty" *ngIf="orderItems.length === 0">
+						<mat-icon>assignment</mat-icon>
+						<p>No items in order list yet. Click Reorder Item to add.</p>
+					</div>
+
+					<div class="table-wrapper" *ngIf="orderItems.length > 0">
+						<table class="inventory-table order-list-table">
+							<thead>
+								<tr>
+									<th>Item Name</th>
+									<th>Suggested Qty</th>
+									<th>Order Quantity</th>
+									<th>Priority</th>
+									<th class="actions-column">Remove</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr *ngFor="let orderItem of orderItems; let orderIndex = index">
+									<td class="strong-cell">{{ orderItem.itemName }}</td>
+									<td>{{ orderItem.suggestedOrderQuantity }}</td>
+									<td>{{ orderItem.orderQuantity }}</td>
+									<td>
+										<span class="priority-badge" [class]="'priority-badge ' + getPriorityBadgeClass(orderItem)">
+											{{ orderItem.priority }}
+										</span>
+									</td>
+									<td class="row-actions">
+										<button mat-icon-button color="warn" type="button" class="icon-action" aria-label="Remove order item" (click)="removeOrderItem(orderIndex)">
+											<mat-icon>remove_circle</mat-icon>
+										</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<section class="print-report" *ngIf="printContext === 'reorder' && orderItems.length > 0">
+			<header class="print-report-header">
+				<h2>Medical Inventory System</h2>
+				<h3>Low Stock Reorder Report</h3>
+				<p>Date: {{ getReportDateLabel() }}</p>
+			</header>
+
+			<table class="print-report-table">
+				<thead>
+					<tr>
+						<th>Item Name</th>
+						<th>Category</th>
+						<th>Current Qty</th>
+						<th>Reorder Level</th>
+						<th>Suggested Qty</th>
+						<th>Order Qty</th>
+						<th>Expiry Date</th>
+						<th>Supplier Name</th>
+						<th>Priority</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let orderItem of orderItems">
+						<td>{{ orderItem.itemName }}</td>
+						<td>{{ orderItem.category }}</td>
+						<td>{{ orderItem.quantity }}</td>
+						<td>{{ orderItem.reorderLevel }}</td>
+						<td>{{ orderItem.suggestedOrderQuantity }}</td>
+						<td>{{ orderItem.orderQuantity }}</td>
+						<td>{{ orderItem.expiryDate }}</td>
+						<td>{{ orderItem.supplierName || 'N/A' }}</td>
+						<td>{{ orderItem.priority }}</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<footer class="print-report-footer">
+				<div class="signature-block">
+					<p>Authorized Signature</p>
+					<div class="signature-line"></div>
+				</div>
+				<div class="signature-block">
+					<p>Date</p>
+					<div class="signature-line"></div>
+				</div>
+			</footer>
+		</section>
+
+		<section class="print-all-report" *ngIf="printContext === 'all-items' && filteredItems.length > 0">
+			<header class="print-report-header">
+				<h2>Medical Inventory System</h2>
+				<h3>All Inventory Items Report</h3>
+				<p>Date: {{ getReportDateLabel() }}</p>
+			</header>
+
+			<table class="print-report-table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Item Name</th>
+						<th>Category</th>
+						<th>Quantity</th>
+						<th>Reorder Level</th>
+						<th>Unit Price</th>
+						<th>Supplier Name</th>
+						<th>Expiry Date</th>
+						<th>Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let inventoryRecord of filteredItems">
+						<td>{{ inventoryRecord.id }}</td>
+						<td>{{ inventoryRecord.itemName || inventoryRecord.item_name }}</td>
+						<td>{{ inventoryRecord.category }}</td>
+						<td>{{ inventoryRecord.quantity }}</td>
+						<td>{{ inventoryRecord.reorderLevel || inventoryRecord.reorder_level }}</td>
+						<td>{{ inventoryRecord.unitPrice || inventoryRecord.unit_price }}</td>
+						<td>{{ inventoryRecord.supplierName || inventoryRecord.supplier_name || 'N/A' }}</td>
+						<td>{{ inventoryRecord.expiryDate || inventoryRecord.expiry_date }}</td>
+						<td>{{ inventoryRecord.status || 'N/A' }}</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<footer class="print-report-footer">
+				<div class="signature-block">
+					<p>Authorized Signature</p>
+					<div class="signature-line"></div>
+				</div>
+				<div class="signature-block">
+					<p>Date</p>
+					<div class="signature-line"></div>
+				</div>
+			</footer>
+		</section>
+
+		<div *ngIf="showFormModal" class="modal-backdrop">
+			<div class="modal-panel">
+				<div class="modal-header">
+					<div>
+						<div class="section-label">{{ isEditMode ? 'Edit item' : 'Add item' }}</div>
+						<h3>{{ isEditMode ? 'Update Inventory Item' : 'Add Inventory Item' }}</h3>
+					</div>
+					<button mat-icon-button type="button" class="modal-close" (click)="closeForm()" aria-label="Close dialog">
+						<mat-icon>close</mat-icon>
+					</button>
+				</div>
+
+				<form class="form-grid" (ngSubmit)="saveItem()">
+					<mat-form-field appearance="outline">
+						<mat-label>Item Name</mat-label>
+						<input matInput id="itemName" type="text" name="itemName" [(ngModel)]="itemForm.itemName" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Category</mat-label>
+						<input matInput id="category" type="text" name="category" [(ngModel)]="itemForm.category" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Quantity</mat-label>
+						<input matInput id="quantity" type="number" name="quantity" [(ngModel)]="itemForm.quantity" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Reorder Level</mat-label>
+						<input matInput id="reorderLevel" type="number" name="reorderLevel" [(ngModel)]="itemForm.reorderLevel" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Unit Price</mat-label>
+						<input matInput id="unitPrice" type="number" step="0.01" name="unitPrice" [(ngModel)]="itemForm.unitPrice" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Supplier Name</mat-label>
+						<input matInput id="supplierName" type="text" name="supplierName" [(ngModel)]="itemForm.supplierName" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Expiry Date</mat-label>
+						<input matInput id="expiryDate" type="date" name="expiryDate" [(ngModel)]="itemForm.expiryDate" required />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Status</mat-label>
+						<input matInput id="status" type="text" name="status" [(ngModel)]="itemForm.status" required />
+					</mat-form-field>
+
+					<div class="form-actions">
+						<button mat-flat-button color="primary" type="submit">
+							{{ isEditMode ? 'Update Item' : 'Add Item' }}
+						</button>
+						<button mat-stroked-button color="primary" type="button" (click)="closeForm()">Cancel</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<div *ngIf="showReorderModal" class="modal-backdrop no-print">
+			<div class="modal-panel reorder-modal-panel">
+				<div class="modal-header">
+					<div>
+						<div class="section-label">Reorder Item</div>
+						<h3>Create Reorder Entry</h3>
+					</div>
+					<button mat-icon-button type="button" class="modal-close" (click)="closeReorderModal()" aria-label="Close reorder dialog">
+						<mat-icon>close</mat-icon>
+					</button>
+				</div>
+
+				<form class="form-grid" (ngSubmit)="addToOrderList()">
+					<mat-form-field appearance="outline">
+						<mat-label>Item Name</mat-label>
+						<input matInput type="text" name="reorderItemName" [(ngModel)]="reorderForm.itemName" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Category</mat-label>
+						<input matInput type="text" name="reorderCategory" [(ngModel)]="reorderForm.category" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Current Quantity</mat-label>
+						<input matInput type="number" name="reorderQuantity" [(ngModel)]="reorderForm.quantity" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Reorder Level</mat-label>
+						<input matInput type="number" name="reorderLevelValue" [(ngModel)]="reorderForm.reorderLevel" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Expiry Date</mat-label>
+						<input matInput type="text" name="reorderExpiryDate" [(ngModel)]="reorderForm.expiryDate" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Supplier Name</mat-label>
+						<input matInput type="text" name="reorderSupplier" [(ngModel)]="reorderForm.supplierName" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Unit Price</mat-label>
+						<input matInput type="number" name="reorderUnitPrice" [(ngModel)]="reorderForm.unitPrice" readonly />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Suggested Order Quantity</mat-label>
+						<input matInput type="number" min="1" name="reorderSuggestedQty" [(ngModel)]="reorderForm.suggestedOrderQuantity" />
+					</mat-form-field>
+
+					<mat-form-field appearance="outline">
+						<mat-label>Order Quantity</mat-label>
+						<input matInput type="number" min="1" name="reorderOrderQty" [(ngModel)]="reorderForm.orderQuantity" required />
+					</mat-form-field>
+
+					<div class="form-actions">
+						<button mat-flat-button color="primary" type="submit">
+							<mat-icon>add_shopping_cart</mat-icon>
+							Add to Order List
+						</button>
+						<button mat-stroked-button color="primary" type="button" (click)="closeReorderModal()">Cancel</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

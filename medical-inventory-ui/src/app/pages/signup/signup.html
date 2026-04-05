@@ -1,0 +1,57 @@
+<div class="auth-page">
+	<mat-card class="auth-card">
+		<mat-card-content>
+			<div class="auth-brand">
+				<div class="brand-icon">
+					<mat-icon>local_hospital</mat-icon>
+				</div>
+				<div class="brand-copy">
+					<div class="eyebrow">Medical Inventory</div>
+					<h2>Create account</h2>
+					<p>Set up your access to manage inventory, track supplies, and keep operations streamlined.</p>
+				</div>
+			</div>
+
+			<form [formGroup]="signupForm" (ngSubmit)="onSignup()" class="auth-form">
+				<mat-form-field appearance="outline" class="full-width">
+					<mat-label>Username</mat-label>
+					<input matInput formControlName="username" type="text" autocomplete="username" />
+					<mat-error *ngIf="signupForm.get('username')?.hasError('required') && signupForm.get('username')?.touched">
+						Username is required.
+					</mat-error>
+					<mat-error *ngIf="signupForm.get('username')?.hasError('minlength') && signupForm.get('username')?.touched">
+						Minimum 3 characters required.
+					</mat-error>
+				</mat-form-field>
+
+				<mat-form-field appearance="outline" class="full-width">
+					<mat-label>Password</mat-label>
+					<input matInput formControlName="password" type="password" autocomplete="new-password" />
+					<mat-error *ngIf="signupForm.get('password')?.hasError('required') && signupForm.get('password')?.touched">
+						Password is required.
+					</mat-error>
+					<mat-error *ngIf="signupForm.get('password')?.hasError('minlength') && signupForm.get('password')?.touched">
+						Minimum 6 characters required.
+					</mat-error>
+				</mat-form-field>
+
+				<div class="success-message" *ngIf="successMessage">
+					{{ successMessage }}
+				</div>
+
+				<mat-error *ngIf="errorMessage" class="form-error">{{ errorMessage }}</mat-error>
+
+				<div class="actions">
+					<button mat-flat-button color="primary" type="submit" class="primary-action">
+						<mat-icon>person_add</mat-icon>
+						Sign Up
+					</button>
+					<button mat-stroked-button color="primary" type="button" (click)="goToLogin()" class="secondary-action">
+						<mat-icon>login</mat-icon>
+						Login
+					</button>
+				</div>
+			</form>
+		</mat-card-content>
+	</mat-card>
+</div>
