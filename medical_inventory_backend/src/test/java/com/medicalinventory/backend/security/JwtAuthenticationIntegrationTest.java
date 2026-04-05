@@ -101,6 +101,34 @@ class JwtAuthenticationIntegrationTest {
     }
 
     @Test
+    void login_returns401_onInvalidCredentials() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "alice",
+                                  "password": "wrongpassword"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void register_returns409_onDuplicateUsername() throws Exception {
+        when(userRepository.existsByUsername("alice")).thenReturn(true);
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "alice",
+                                  "password": "password123"
+                                }
+                                """))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void protectedRoute_returnsOk_withValidBearerToken() throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
