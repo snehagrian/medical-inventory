@@ -36,6 +36,8 @@ A full-stack web application for managing medical supplies and inventory. Built 
 - User registration and login
 - JWT-based stateless authentication
 - Passwords hashed with BCrypt
+- HTTP interceptor attaches Bearer token on all API requests
+- Route guard redirects unauthenticated users to login
 
 ---
 
@@ -47,6 +49,7 @@ A full-stack web application for managing medical supplies and inventory. Built 
 | Security | Spring Security, JWT (jjwt 0.12.6) |
 | Database | MySQL 8, Spring Data JPA / Hibernate |
 | Frontend | Angular 21, Angular Material |
+| Testing | JUnit 5, Mockito, Vitest |
 | Build | Maven (mvnw wrapper), npm |
 
 ---
@@ -58,8 +61,8 @@ medical-inventory/
 ├── medical_inventory_backend/
 │   ├── src/
 │   │   ├── main/java/com/medicalinventory/backend/
-│   │   │   ├── config/       # Security + JWT filter
-│   │   │   ├── controller/   # Auth + Inventory REST controllers
+│   │   │   ├── config/       # SecurityConfig (CORS + JWT filter)
+│   │   │   ├── controller/   # AuthController, InventoryItemController
 │   │   │   ├── dto/          # AuthRequest, AuthResponse
 │   │   │   ├── entity/       # User, InventoryItem
 │   │   │   ├── repository/   # JPA repositories
@@ -74,6 +77,8 @@ medical-inventory/
         │   ├── signup/
         │   ├── dashboard/
         │   └── services/     # AuthService, InventoryService
+        ├── auth.guard.ts     # Protects /dashboard route
+        ├── auth.interceptor.ts  # Attaches JWT to all requests
         ├── app.routes.ts
         └── app.config.ts
 ```
@@ -102,6 +107,7 @@ Start MySQL and ensure it is running on `localhost:3306`.
 cd medical_inventory_backend
 
 # Configure credentials in src/main/resources/application.properties
+# Update spring.datasource.username and spring.datasource.password as needed
 
 ./mvnw spring-boot:run
 ```
