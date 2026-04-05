@@ -106,10 +106,11 @@ Start MySQL and ensure it is running on `localhost:3306`.
 ```bash
 cd medical_inventory_backend
 
-# Configure credentials in src/main/resources/application.properties
-# Update spring.datasource.username and spring.datasource.password as needed
+# First-time setup: copy the example env file and fill in your values
+cp .env.example .env
+# Edit .env and set JWT_SECRET, DB_USERNAME, DB_PASSWORD
 
-# Load local env vars (copy .env.example to .env and set your values)
+# Load env vars — required in every new terminal session before running
 source .env
 
 ./mvnw spring-boot:run
