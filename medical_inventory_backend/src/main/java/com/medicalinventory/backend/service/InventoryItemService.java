@@ -3,7 +3,9 @@ package com.medicalinventory.backend.service;
 import com.medicalinventory.backend.entity.InventoryItem;
 import com.medicalinventory.backend.repository.InventoryItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,14 +29,14 @@ public class InventoryItemService {
     // GET ITEM BY ID
     public InventoryItem getItemById(Long id) {
         return inventoryItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
     }
 
     // UPDATE ITEM
     public InventoryItem updateItem(Long id, InventoryItem updatedItem) {
 
         InventoryItem existingItem = inventoryItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
 
         existingItem.setItemName(updatedItem.getItemName());
         existingItem.setCategory(updatedItem.getCategory());
@@ -51,7 +53,7 @@ public class InventoryItemService {
     // DELETE ITEM
     public void deleteItem(Long id) {
         if (!inventoryItemRepository.existsById(id)) {
-            throw new RuntimeException("Item not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found");
         }
         inventoryItemRepository.deleteById(id);
     }
