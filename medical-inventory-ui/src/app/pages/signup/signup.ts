@@ -48,7 +48,7 @@ export class Signup {
           setTimeout(() => this.router.navigate(['/']), 2000);
         },
         error: (err) => {
-          this.errorMessage = err?.error || 'Sign up failed';
+          this.errorMessage = err?.error?.message || err?.message || 'Sign up failed';
         }
       });
     } else {
