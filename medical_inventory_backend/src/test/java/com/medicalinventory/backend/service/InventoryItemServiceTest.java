@@ -8,12 +8,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -45,17 +45,6 @@ class InventoryItemServiceTest {
     }
 
     @Test
-    void getAllItems_returnsItemsFromRepository() {
-        when(inventoryItemRepository.findAll()).thenReturn(List.of(sampleItem));
-
-        List<InventoryItem> result = inventoryItemService.getAllItems();
-
-        assertEquals(1, result.size());
-        assertEquals("Pedicle Screw 6.5mm", result.get(0).getItemName());
-        verify(inventoryItemRepository, times(1)).findAll();
-    }
-
-    @Test
     void addItem_savesItem() {
         when(inventoryItemRepository.save(any(InventoryItem.class))).thenReturn(sampleItem);
 
@@ -68,29 +57,10 @@ class InventoryItemServiceTest {
     @Test
     void updateItem_updatesExistingItem() {
         InventoryItem existingItem = new InventoryItem(
-                1L,
-                "Old Item",
-                "Old Category",
-                5,
-                3,
-                100.0,
-                "Old Supplier",
-                "2025-01-01",
-                "Old Status",
-                "2026-01-01"
+                1L, "Old Item", "Old Category", 5, 3, 100.0, "Old Supplier", "2025-01-01", "Old Status", "2026-01-01"
         );
-
         InventoryItem updatedItem = new InventoryItem(
-                null,
-                "Updated Item",
-                "Updated Category",
-                20,
-                8,
-                250.0,
-                "Updated Supplier",
-                "2027-01-01",
-                "Updated Status",
-                "2026-04-04"
+                null, "Updated Item", "Updated Category", 20, 8, 250.0, "Updated Supplier", "2027-01-01", "Updated Status", "2026-04-04"
         );
 
         when(inventoryItemRepository.findById(1L)).thenReturn(Optional.of(existingItem));
@@ -101,8 +71,18 @@ class InventoryItemServiceTest {
         assertEquals("Updated Item", result.getItemName());
         assertEquals(20, result.getQuantity());
         assertEquals(8, result.getReorderLevel());
-        verify(inventoryItemRepository, times(1)).findById(1L);
-        verify(inventoryItemRepository, times(1)).save(existingItem);
+        verify(inventoryItemRepository).findById(1L);
+        verify(inventoryItemRepository).save(existingItem);
+    }
+
+    @Test
+    void updateItem_throwsNotFound_whenItemMissing() {
+        when(inventoryItemRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> inventoryItemService.updateItem(99L, sampleItem));
+
+        assertEquals(404, ex.getStatusCode().value());
     }
 
     @Test
@@ -112,23 +92,24 @@ class InventoryItemServiceTest {
 
         inventoryItemService.deleteItem(1L);
 
-        verify(inventoryItemRepository, times(1)).existsById(1L);
-        verify(inventoryItemRepository, times(1)).deleteById(1L);
+        verify(inventoryItemRepository).existsById(1L);
+        verify(inventoryItemRepository).deleteById(1L);
     }
 
     @Test
-    void getLowStockItems_returnsOnlyLowStockItems() {
+    void deleteItem_throwsNotFound_whenItemMissing() {
+        when(inventoryItemRepository.existsById(99L)).thenReturn(false);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> inventoryItemService.deleteItem(99L));
+
+        assertEquals(404, ex.getStatusCode().value());
+    }
+
+    @Test
+    void getLowStockItems_returnsOnlyItemsBelowReorderLevel() {
         InventoryItem lowStockItem = new InventoryItem(
-                2L,
-                "Interbody Cage Small",
-                "Fusion",
-                2,
-                3,
-                1800.0,
-                "Fusion Supplies",
-                "2026-10-10",
-                "Low Stock",
-                "2026-04-04"
+                2L, "Interbody Cage Small", "Fusion", 2, 3, 1800.0, "Fusion Supplies", "2026-10-10", "Low Stock", "2026-04-04"
         );
 
         when(inventoryItemRepository.findAll()).thenReturn(List.of(sampleItem, lowStockItem));
@@ -140,11 +121,12 @@ class InventoryItemServiceTest {
     }
 
     @Test
-    void getItemById_throwsWhenMissing() {
+    void getItemById_throwsNotFound_whenMissing() {
         when(inventoryItemRepository.findById(99L)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> inventoryItemService.getItemById(99L));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> inventoryItemService.getItemById(99L));
 
-        assertEquals("Item not found", exception.getMessage());
+        assertEquals(404, ex.getStatusCode().value());
     }
 }

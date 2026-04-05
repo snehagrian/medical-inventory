@@ -1,7 +1,7 @@
 package com.medicalinventory.backend.entity;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,7 +22,6 @@ public class User {
     @Column(nullable = false)
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
-
 
     private String role;
 
@@ -34,5 +34,4 @@ public class User {
             createdAt = LocalDateTime.now().toString();
         }
     }
-    
 }
