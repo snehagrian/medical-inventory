@@ -1,0 +1,15 @@
+:host {
+	display: block;
+}
+
+.read-only-note {
+	margin: 8px 0 0;
+	color: #64748b;
+	line-height: 1.6;
+	max-width: 760px;
+}
+
+.report-summary-meta {
+	margin: 0 0 16px;
+	color: #475569;
+}

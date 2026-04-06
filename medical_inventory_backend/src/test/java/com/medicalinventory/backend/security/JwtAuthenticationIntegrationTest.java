@@ -2,10 +2,13 @@ package com.medicalinventory.backend.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.medicalinventory.backend.entity.InventoryItem;
+import com.medicalinventory.backend.dto.InventoryItemPageResponse;
+import com.medicalinventory.backend.dto.InventoryItemQuery;
+import com.medicalinventory.backend.dto.InventoryItemResponse;
 import com.medicalinventory.backend.entity.User;
 import com.medicalinventory.backend.repository.UserRepository;
 import com.medicalinventory.backend.service.InventoryItemService;
+import com.medicalinventory.backend.service.InventoryReportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -52,6 +56,9 @@ class JwtAuthenticationIntegrationTest {
     @MockBean
     private InventoryItemService inventoryItemService;
 
+    @MockBean
+    private InventoryReportService inventoryReportService;
+
     @BeforeEach
     void setUp() {
         User user = new User();
@@ -63,19 +70,15 @@ class JwtAuthenticationIntegrationTest {
 
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
 
-        InventoryItem item = new InventoryItem(
-                1L,
-                "Pedicle Screw 6.5mm",
-                "Fixation",
-                40,
-                10,
-                1250.0,
-                "MedSuppliers",
-                "2026-12-31",
-                "Available",
-                "2026-04-05"
+        InventoryItemResponse item = new InventoryItemResponse(
+                1L, "Pedicle Screw 6.5mm", "Fixation",
+                40, 10, 1250.0, "MedSuppliers", "2026-12-31", "Available", "2026-04-05"
         );
-        when(inventoryItemService.getAllItems()).thenReturn(List.of(item));
+        when(inventoryItemService.getAllItems(any(InventoryItemQuery.class))).thenReturn(
+                new InventoryItemPageResponse(
+                        List.of(item), 1, 1, 0, 10, List.of("Fixation"), List.of("Available")
+                )
+        );
     }
 
     @Test
@@ -147,6 +150,6 @@ class JwtAuthenticationIntegrationTest {
         mockMvc.perform(get("/api/items")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].itemName").value("Pedicle Screw 6.5mm"));
+                .andExpect(jsonPath("$.items[0].itemName").value("Pedicle Screw 6.5mm"));
     }
 }

@@ -14,6 +14,7 @@ export interface AuthResponse {
 export class AuthService {
   private baseUrl = 'http://localhost:8080/api/auth';
   private readonly tokenKey = 'auth_token';
+  private readonly rememberedUsernameKey = 'remembered_username';
 
   constructor(private http: HttpClient) {}
 
@@ -31,8 +32,31 @@ export class AuthService {
     localStorage.setItem(this.tokenKey, token);
   }
 
+  rememberUsername(username: string): void {
+    localStorage.setItem(this.rememberedUsernameKey, username);
+  }
+
+  getRememberedUsername(): string {
+    return localStorage.getItem(this.rememberedUsernameKey) ?? '';
+  }
+
+  clearRememberedUsername(): void {
+    localStorage.removeItem(this.rememberedUsernameKey);
+  }
+
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem(this.tokenKey);
+
+    if (!token) {
+      return null;
+    }
+
+    if (this.isTokenExpired(token)) {
+      this.clearToken();
+      return null;
+    }
+
+    return token;
   }
 
   clearToken(): void {
@@ -41,5 +65,34 @@ export class AuthService {
 
   isLoggedIn(): boolean {
     return !!this.getToken();
+  }
+
+  private isTokenExpired(token: string): boolean {
+    const payload = this.decodeTokenPayload(token);
+
+    if (!payload || typeof payload.exp !== 'number') {
+      return true;
+    }
+
+    return payload.exp * 1000 <= Date.now();
+  }
+
+  private decodeTokenPayload(token: string): { exp?: number } | null {
+    const segments = token.split('.');
+
+    if (segments.length !== 3) {
+      return null;
+    }
+
+    try {
+      const base64 = segments[1]
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+        .padEnd(Math.ceil(segments[1].length / 4) * 4, '=');
+
+      return JSON.parse(atob(base64)) as { exp?: number };
+    } catch {
+      return null;
+    }
   }
 }

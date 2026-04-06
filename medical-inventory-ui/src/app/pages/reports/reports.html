@@ -1,0 +1,296 @@
+<div class="dashboard-page">
+	<div class="dashboard-container">
+		<mat-card class="dashboard-card hero-card no-print">
+			<mat-card-content class="hero-content">
+				<div class="hero-copy">
+					<div class="eyebrow">Report Module</div>
+					<h2>Inventory Reports</h2>
+					<p>Review filtered inventory data in a read-only table, inspect backend-generated summary metrics, and export clean reports.</p>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="dashboard-card toolbar-card no-print">
+			<mat-card-content class="toolbar-content">
+				<div class="toolbar-grid">
+					<mat-form-field appearance="outline" class="toolbar-field search-field">
+						<mat-label>Search report data</mat-label>
+						<mat-icon matPrefix>search</mat-icon>
+						<input matInput type="text" placeholder="Search by item, category, or supplier" [ngModel]="searchTerm" (ngModelChange)="onSearchChange($event)" />
+						<button *ngIf="searchTerm" mat-icon-button matSuffix type="button" aria-label="Clear search" (click)="onSearchChange('')">
+							<mat-icon>close</mat-icon>
+						</button>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Category</mat-label>
+						<mat-select [(ngModel)]="selectedCategory" (selectionChange)="onFiltersChanged()">
+							<mat-option value="ALL">All Categories</mat-option>
+							<mat-option *ngFor="let category of availableCategories" [value]="category">{{ category }}</mat-option>
+						</mat-select>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Status</mat-label>
+						<mat-select [(ngModel)]="selectedStatus" (selectionChange)="onFiltersChanged()">
+							<mat-option value="ALL">All Statuses</mat-option>
+							<mat-option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</mat-option>
+						</mat-select>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Expiry From</mat-label>
+						<input matInput [matDatepicker]="fromPicker" [(ngModel)]="dateFrom" [max]="dateTo" (ngModelChange)="onFiltersChanged()" />
+						<mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+						<mat-datepicker #fromPicker></mat-datepicker>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Expiry To</mat-label>
+						<input matInput [matDatepicker]="toPicker" [(ngModel)]="dateTo" [min]="dateFrom" (ngModelChange)="onFiltersChanged()" />
+						<mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+						<mat-datepicker #toPicker></mat-datepicker>
+						<mat-error *ngIf="dateRangeError">"From" must be before "To"</mat-error>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Sort by</mat-label>
+						<mat-select [(ngModel)]="sortField" (selectionChange)="onSortFieldChange()">
+							<mat-option value="">No sorting</mat-option>
+							<mat-option value="quantity">Quantity</mat-option>
+							<mat-option value="unitPrice">Unit price</mat-option>
+							<mat-option value="expiryDate">Expiry date</mat-option>
+						</mat-select>
+					</mat-form-field>
+
+					<mat-form-field appearance="outline" class="toolbar-field">
+						<mat-label>Page size</mat-label>
+						<mat-select [(ngModel)]="pageSize" (selectionChange)="onPageSizeChange(pageSize)">
+							<mat-option [value]="5">5 per page</mat-option>
+							<mat-option [value]="10">10 per page</mat-option>
+							<mat-option [value]="20">20 per page</mat-option>
+						</mat-select>
+					</mat-form-field>
+				</div>
+
+				<div class="toolbar-actions">
+					<button mat-stroked-button color="primary" type="button" class="control-button" (click)="exportInventoryAsXlsx()">
+						<mat-icon>description</mat-icon>
+						Export Excel
+					</button>
+					<button mat-flat-button color="accent" type="button" class="control-button" (click)="printInventoryReport()">
+						<mat-icon>print</mat-icon>
+						Export PDF (Print)
+					</button>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="dashboard-card analytics-card no-print">
+			<mat-card-content class="analytics-content">
+				<div class="analytics-header">
+					<div>
+						<div class="section-label">Summary</div>
+						<h3>Backend Report Snapshot</h3>
+					</div>
+				</div>
+
+				<p class="loading-text" *ngIf="isSummaryLoading">Loading summary metrics...</p>
+				<p class="error-text" *ngIf="!isSummaryLoading && summaryErrorMessage">{{ summaryErrorMessage }}</p>
+
+				<div class="analytics-summary-grid" *ngIf="!isSummaryLoading && !summaryErrorMessage">
+					<div class="summary-card">
+						<div class="summary-label">Total Items</div>
+						<div class="summary-value">{{ analyticsTotalItems }}</div>
+					</div>
+					<div class="summary-card">
+						<div class="summary-label">Low Stock Items</div>
+						<div class="summary-value">{{ analyticsLowStockItems }}</div>
+					</div>
+					<div class="summary-card">
+						<div class="summary-label">Available Items</div>
+						<div class="summary-value">{{ analyticsAvailableItems }}</div>
+					</div>
+					<div class="summary-card">
+						<div class="summary-label">Categories</div>
+						<div class="summary-value">{{ analyticsCategoriesCount }}</div>
+					</div>
+				</div>
+
+				<p class="report-summary-meta no-print" *ngIf="!isSummaryLoading && !summaryErrorMessage">
+					Filtered inventory value: <strong>{{ analyticsTotalInventoryValue | currency:'USD':'symbol':'1.2-2' }}</strong>
+				</p>
+
+				<div class="analytics-charts-grid" *ngIf="!isSummaryLoading && !summaryErrorMessage">
+					<div class="analytics-chart-card">
+						<div class="chart-title">Quantity Share by Category (Pie)</div>
+						<div class="chart-empty" *ngIf="analyticsPieChartData.length === 0">
+							No category data available.
+						</div>
+						<div class="chart-layout" *ngIf="analyticsPieChartData.length > 0">
+							<div class="chart-visual pie-chart" [style.background]="analyticsPieChartBackground"></div>
+							<div class="chart-legend">
+								<div class="chart-legend-item" *ngFor="let chartItem of analyticsPieChartData">
+									<span class="legend-dot" [style.background]="chartItem.color"></span>
+									<span class="legend-label">{{ chartItem.label }}</span>
+									<span class="legend-value">{{ chartItem.value }} ({{ chartItem.percentage | number:'1.0-1' }}%)</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="analytics-chart-card">
+						<div class="chart-title">Stock Health (Donut)</div>
+						<div class="chart-empty" *ngIf="analyticsDonutChartData.length === 0">
+							No stock distribution data available.
+						</div>
+						<div class="chart-layout" *ngIf="analyticsDonutChartData.length > 0">
+							<div class="chart-visual donut-chart" [style.background]="analyticsDonutChartBackground">
+								<div class="donut-inner">
+									{{ analyticsTotalItems }}
+									<span>Total</span>
+								</div>
+							</div>
+							<div class="chart-legend">
+								<div class="chart-legend-item" *ngFor="let chartItem of analyticsDonutChartData">
+									<span class="legend-dot" [style.background]="chartItem.color"></span>
+									<span class="legend-label">{{ chartItem.label }}</span>
+									<span class="legend-value">{{ chartItem.value }} ({{ chartItem.percentage | number:'1.0-1' }}%)</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<mat-card class="dashboard-card table-card no-print">
+			<mat-card-content class="table-content">
+				<div class="table-header-row">
+					<div>
+						<div class="section-label">Read-Only Table</div>
+						<h3>Filtered inventory report data</h3>
+						<p class="read-only-note">This screen is intentionally read-only. Edit and delete actions stay in the dashboard transaction module.</p>
+					</div>
+				</div>
+
+				<p class="loading-text" *ngIf="isLoading">Loading report rows...</p>
+				<p class="error-text" *ngIf="!isLoading && errorMessage">{{ errorMessage }}</p>
+
+				<div class="table-wrapper" *ngIf="!isLoading && reportItems.length > 0">
+					<mat-table [dataSource]="paginatedItems" class="inventory-mat-table">
+						<ng-container matColumnDef="id">
+							<mat-header-cell *matHeaderCellDef>ID</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.id }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="itemName">
+							<mat-header-cell *matHeaderCellDef>Item</mat-header-cell>
+							<mat-cell *matCellDef="let row" class="strong-cell">{{ row.itemName }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="category">
+							<mat-header-cell *matHeaderCellDef>Category</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.category }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="quantity">
+							<mat-header-cell *matHeaderCellDef>Quantity</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.quantity }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="reorderLevel">
+							<mat-header-cell *matHeaderCellDef>Reorder</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.reorderLevel }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="unitPrice">
+							<mat-header-cell *matHeaderCellDef>Unit Price</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.unitPrice }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="supplierName">
+							<mat-header-cell *matHeaderCellDef>Supplier</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.supplierName }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="expiryDate">
+							<mat-header-cell *matHeaderCellDef>Expiry</mat-header-cell>
+							<mat-cell *matCellDef="let row">{{ row.expiryDate }}</mat-cell>
+						</ng-container>
+						<ng-container matColumnDef="status">
+							<mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
+							<mat-cell *matCellDef="let row">
+								<span class="status-badge" [ngClass]="{
+									'badge-available': row.status === 'AVAILABLE' || row.status === 'Available',
+									'badge-active': row.status === 'ACTIVE' || row.status === 'Active',
+									'badge-low': row.status === 'LOW STOCK' || row.status === 'Low Stock' || row.status === 'LOW' || row.status === 'Low'
+								}">{{ row.status }}</span>
+							</mat-cell>
+						</ng-container>
+						<mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+						<mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+					</mat-table>
+				</div>
+
+				<div class="empty-state" *ngIf="!isLoading && reportItems.length === 0 && !errorMessage">
+					<mat-icon>assessment</mat-icon>
+					<p>No report rows found for the selected filters.</p>
+				</div>
+
+				<div class="table-footer" *ngIf="!isLoading && reportItems.length > 0">
+					<div class="pagination-controls">
+						<button mat-icon-button type="button" class="page-button" aria-label="Previous page" (click)="prevPage()" [disabled]="currentPage === 1">
+							<mat-icon>chevron_left</mat-icon>
+						</button>
+						<span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+						<button mat-icon-button type="button" class="page-button" aria-label="Next page" (click)="nextPage()" [disabled]="currentPage === totalPages">
+							<mat-icon>chevron_right</mat-icon>
+						</button>
+					</div>
+				</div>
+			</mat-card-content>
+		</mat-card>
+
+		<section class="print-all-report" *ngIf="printContext === 'inventory-report' && allReportItems.length > 0">
+			<header class="print-report-header">
+				<h2>Medical Inventory System</h2>
+				<h3>Inventory Report</h3>
+				<p>Date: {{ getReportDateLabel() }}</p>
+			</header>
+
+			<table class="print-report-table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Item Name</th>
+						<th>Category</th>
+						<th>Quantity</th>
+						<th>Reorder Level</th>
+						<th>Unit Price</th>
+						<th>Supplier Name</th>
+						<th>Expiry Date</th>
+						<th>Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let inventoryRecord of allReportItems">
+						<td>{{ inventoryRecord.id }}</td>
+						<td>{{ inventoryRecord.itemName || inventoryRecord.item_name }}</td>
+						<td>{{ inventoryRecord.category }}</td>
+						<td>{{ inventoryRecord.quantity }}</td>
+						<td>{{ inventoryRecord.reorderLevel || inventoryRecord.reorder_level }}</td>
+						<td>{{ inventoryRecord.unitPrice || inventoryRecord.unit_price }}</td>
+						<td>{{ inventoryRecord.supplierName || inventoryRecord.supplier_name || 'N/A' }}</td>
+						<td>{{ inventoryRecord.expiryDate || inventoryRecord.expiry_date }}</td>
+						<td>{{ inventoryRecord.status || 'N/A' }}</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<footer class="print-report-footer">
+				<div class="signature-block">
+					<p>Authorized Signature</p>
+					<div class="signature-line"></div>
+				</div>
+				<div class="signature-block">
+					<p>Date</p>
+					<div class="signature-line"></div>
+				</div>
+			</footer>
+		</section>
+	</div>
+</div>

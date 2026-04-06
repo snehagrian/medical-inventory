@@ -1,0 +1,60 @@
+<div class="shell-page">
+  <header class="shell-header no-print">
+    <div class="shell-brand">
+      <div class="shell-eyebrow">Medical Inventory</div>
+      <h1>Operations Workspace</h1>
+    </div>
+
+    <nav class="shell-nav" aria-label="Primary">
+      <a
+        mat-stroked-button
+        color="primary"
+        routerLink="/dashboard"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <mat-icon>inventory_2</mat-icon>
+        Dashboard
+      </a>
+      <a
+        mat-stroked-button
+        color="primary"
+        routerLink="/reports"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <mat-icon>assessment</mat-icon>
+        Reports
+      </a>
+    </nav>
+
+    <button mat-stroked-button color="primary" type="button" class="logout-button" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      Logout
+    </button>
+  </header>
+
+  <router-outlet></router-outlet>
+
+  <div *ngIf="showInactivityWarning" class="modal-backdrop">
+    <div class="modal-panel inactivity-modal-panel">
+      <div class="modal-header">
+        <div>
+          <div class="section-label">Session Warning</div>
+          <h3>Are you still there?</h3>
+        </div>
+      </div>
+      <p class="confirm-message">
+        You have been inactive for a while. You will be automatically logged out in
+        <strong>{{ inactivitySecondsLeft }}</strong> second{{ inactivitySecondsLeft !== 1 ? 's' : '' }}.
+      </p>
+      <div class="form-actions">
+        <button mat-flat-button color="primary" type="button" (click)="stayLoggedIn()">
+          <mat-icon>timer</mat-icon>
+          Stay Logged In
+        </button>
+        <button mat-stroked-button color="warn" type="button" (click)="logout()">Logout Now</button>
+      </div>
+    </div>
+  </div>
+</div>
