@@ -95,6 +95,11 @@
 	margin-top: -4px;
 }
 
+.remember-me {
+	margin-top: -8px;
+	color: #334155;
+}
+
 .actions {
 	display: grid;
 	grid-template-columns: 1fr 1fr;

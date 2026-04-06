@@ -3,6 +3,10 @@ package com.medicalinventory.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
 @Entity
 @Table(name = "inventory_items")
 @Data
@@ -14,7 +18,7 @@ public class InventoryItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "item_name", nullable = false)
+    @Column(name = "item_name", nullable = false, unique = true)
     private String itemName;
 
     private String category;
@@ -32,10 +36,17 @@ public class InventoryItem {
     private String supplierName;
 
     @Column(name = "expiry_date")
-    private String expiryDate;
+    private LocalDate expiryDate;
 
     private String status;
 
     @Column(name = "created_at")
-    private String createdAt;
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        }
+    }
 }

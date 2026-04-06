@@ -1,19 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideRouter, Router } from '@angular/router';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { Dashboard } from './dashboard';
 import { InventoryService } from '../services/inventory.services';
-import { AuthService } from '../services/auth.service';
 
 describe('Dashboard', () => {
   let component: Dashboard;
   let fixture: ComponentFixture<Dashboard>;
   let inventoryService: InventoryService;
-  let authService: AuthService;
-  let router: Router;
+
+  const emptyPageResponse = {
+    items: [],
+    totalElements: 0,
+    totalPages: 0,
+    page: 0,
+    size: 10,
+    availableCategories: [],
+    availableStatuses: []
+  };
 
   const mockInventoryService = {
     allItems: vi.fn(),
@@ -23,35 +29,23 @@ describe('Dashboard', () => {
     deleteItem: vi.fn()
   };
 
-  const mockAuthService = {
-    login: vi.fn(),
-    register: vi.fn(),
-    getToken: vi.fn(),
-    saveToken: vi.fn(),
-    clearToken: vi.fn(),
-    isLoggedIn: vi.fn()
-  };
-
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockInventoryService.allItems.mockReturnValue(of([]));
-    mockInventoryService.getLowStockItems.mockReturnValue(of([]));
+    mockInventoryService.allItems.mockReturnValue(of(emptyPageResponse));
+    mockInventoryService.getLowStockItems.mockReturnValue(of(emptyPageResponse));
 
     await TestBed.configureTestingModule({
       imports: [Dashboard],
       providers: [
-        provideHttpClient(),
-        provideRouter([]),
-        { provide: InventoryService, useValue: mockInventoryService },
-        { provide: AuthService, useValue: mockAuthService }
+        provideNativeDateAdapter(),
+        { provide: InventoryService, useValue: mockInventoryService }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(Dashboard);
     component = fixture.componentInstance;
     inventoryService = TestBed.inject(InventoryService);
-    authService = TestBed.inject(AuthService);
-    router = TestBed.inject(Router);
+    fixture.detectChanges();
     await fixture.whenStable();
   });
 
@@ -59,21 +53,29 @@ describe('Dashboard', () => {
     expect(inventoryService.allItems).toHaveBeenCalled();
   });
 
-  it('should clear token and navigate to / on logout', () => {
-    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-
-    component.logout();
-
-    expect(authService.clearToken).toHaveBeenCalled();
-    expect(navSpy).toHaveBeenCalledWith(['/']);
-  });
-
   it('should switch to low stock view when showLowStockItems is called', () => {
-    mockInventoryService.getLowStockItems.mockReturnValue(of([]));
+    mockInventoryService.getLowStockItems.mockReturnValue(of(emptyPageResponse));
 
     component.showLowStockItems();
 
     expect(component.isLowStockView).toBe(true);
     expect(inventoryService.getLowStockItems).toHaveBeenCalled();
+  });
+
+  it('should show pagination controls in low stock view when items span multiple pages', () => {
+    component.isLoading = false;
+    component.errorMessage = '';
+    component.isLowStockView = true;
+    component.items = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }];
+    component.paginatedItems = [{ id: 3 }, { id: 4 }];
+    component.currentPage = 2;
+    component.totalPages = 3;
+
+    fixture.detectChanges();
+
+    const pageIndicator = fixture.nativeElement.querySelector('.table-footer .page-indicator');
+
+    expect(pageIndicator).not.toBeNull();
+    expect(pageIndicator.textContent).toContain('Page 2 of 3');
   });
 });

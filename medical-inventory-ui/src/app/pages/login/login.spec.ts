@@ -18,12 +18,16 @@ describe('Login', () => {
     login: vi.fn(),
     getToken: vi.fn(),
     saveToken: vi.fn(),
+    rememberUsername: vi.fn(),
+    getRememberedUsername: vi.fn(),
+    clearRememberedUsername: vi.fn(),
     clearToken: vi.fn(),
     isLoggedIn: vi.fn()
   };
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockAuthService.getRememberedUsername.mockReturnValue('');
 
     await TestBed.configureTestingModule({
       imports: [Login],
@@ -42,7 +46,7 @@ describe('Login', () => {
   });
 
   it('should not call login when form is invalid', () => {
-    component.loginForm.setValue({ username: '', password: '' });
+    component.loginForm.setValue({ username: '', password: '', rememberMe: false });
 
     component.onLogin();
 
@@ -51,7 +55,7 @@ describe('Login', () => {
 
   it('should call authService.login with form credentials on valid submit', () => {
     mockAuthService.login.mockReturnValue(of({ message: 'Login Successful', token: 'fake-token' }));
-    component.loginForm.setValue({ username: 'alice', password: 'password123' });
+    component.loginForm.setValue({ username: 'alice', password: 'password123', rememberMe: false });
 
     component.onLogin();
 
@@ -60,20 +64,43 @@ describe('Login', () => {
 
   it('should navigate to /dashboard on successful login', async () => {
     mockAuthService.login.mockReturnValue(of({ message: 'Login Successful', token: 'fake-token' }));
-    component.loginForm.setValue({ username: 'alice', password: 'password123' });
+    component.loginForm.setValue({ username: 'alice', password: 'password123', rememberMe: false });
     const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     component.onLogin();
 
     expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+    expect(authService.clearRememberedUsername).toHaveBeenCalled();
   });
 
   it('should set errorMessage on login failure', () => {
     mockAuthService.login.mockReturnValue(throwError(() => new Error('Unauthorized')));
-    component.loginForm.setValue({ username: 'alice', password: 'wrongpass' });
+    component.loginForm.setValue({ username: 'alice', password: 'wrongpass', rememberMe: false });
 
     component.onLogin();
 
     expect(component.errorMessage).toBe('Invalid username or password');
+  });
+
+  it('should prefill the remembered username on init', async () => {
+    mockAuthService.getRememberedUsername.mockReturnValue('alice');
+
+    fixture = TestBed.createComponent(Login);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(component.loginForm.value.username).toBe('alice');
+    expect(component.loginForm.value.rememberMe).toBe(true);
+  });
+
+  it('should remember username when remember me is selected', () => {
+    mockAuthService.login.mockReturnValue(of({ message: 'Login Successful', token: 'fake-token' }));
+    component.loginForm.setValue({ username: 'alice', password: 'password123', rememberMe: true });
+
+    component.onLogin();
+
+    expect(authService.rememberUsername).toHaveBeenCalledWith('alice');
+    expect(authService.clearRememberedUsername).not.toHaveBeenCalled();
   });
 });
