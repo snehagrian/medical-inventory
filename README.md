@@ -27,8 +27,8 @@ A full-stack web application for managing medical supplies and inventory. Built 
 - Filter charts by stock status
 
 ### Reports and Export
-- Export all inventory items as CSV
-- Export low stock order list as CSV
+- Export all inventory items as XLSX
+- Export low stock order list as XLSX
 - Print-friendly PDF report for all items
 - Print-friendly PDF report for reorder order list
 

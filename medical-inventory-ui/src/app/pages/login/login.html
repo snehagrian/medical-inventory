@@ -35,10 +35,14 @@
 					</mat-error>
 				</mat-form-field>
 
+				<mat-checkbox formControlName="rememberMe" class="remember-me">
+					Remember username
+				</mat-checkbox>
+
 				<mat-error *ngIf="errorMessage" class="form-error">{{ errorMessage }}</mat-error>
 
 				<div class="actions">
-					<button mat-flat-button color="primary" type="submit" class="primary-action">
+					<button mat-flat-button color="primary" type="submit" class="primary-action" [disabled]="loginForm.invalid">
 						<mat-icon>login</mat-icon>
 						Login
 					</button>

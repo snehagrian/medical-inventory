@@ -1,11 +1,5 @@
 :host {
 	display: block;
-	min-height: 100vh;
-	padding: 32px 16px;
-	box-sizing: border-box;
-	background:
-		radial-gradient(circle at top left, rgba(63, 81, 181, 0.16), transparent 32%),
-		linear-gradient(135deg, #eef3fb 0%, #f7f9fc 45%, #edf2f7 100%);
 }
 
 .dashboard-page {
@@ -414,6 +408,42 @@
 	background: #eef4ff;
 }
 
+.inventory-mat-table {
+	width: 100%;
+	background: #fff;
+	min-width: 1080px;
+}
+
+.inventory-mat-table .mat-mdc-header-row {
+	background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+.inventory-mat-table .mat-mdc-header-cell {
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.82rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.inventory-mat-table .mat-mdc-cell {
+	color: #334155;
+	font-size: 0.92rem;
+}
+
+.inventory-mat-table .mat-mdc-row:nth-child(even) {
+	background: #f8fafc;
+}
+
+.clickable-row {
+	cursor: pointer;
+}
+
+.clickable-row:hover {
+	background: #eef4ff !important;
+}
+
 .strong-cell {
 	font-weight: 700;
 	color: #0f172a;
@@ -653,6 +683,22 @@
 
 .reorder-modal-panel {
 	width: min(940px, 100%);
+}
+
+.confirm-modal-panel {
+	width: min(420px, 100%);
+}
+
+.inactivity-modal-panel {
+	width: min(460px, 100%);
+	border-top: 4px solid #f59e0b;
+}
+
+.confirm-message {
+	margin: 16px 0 24px;
+	color: #475569;
+	font-size: 0.95rem;
+	line-height: 1.5;
 }
 
 .modal-header {

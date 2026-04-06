@@ -1,11 +1,14 @@
 package com.medicalinventory.backend.controller;
 
-import com.medicalinventory.backend.entity.InventoryItem;
+import com.medicalinventory.backend.dto.InventoryItemPageResponse;
+import com.medicalinventory.backend.dto.InventoryItemQuery;
+import com.medicalinventory.backend.dto.InventoryItemRequest;
+import com.medicalinventory.backend.dto.InventoryItemResponse;
 import com.medicalinventory.backend.service.InventoryItemService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/items")
@@ -15,28 +18,55 @@ public class InventoryItemController {
     private InventoryItemService inventoryItemService;
 
     @GetMapping
-    public List<InventoryItem> getAllItems() {
-        return inventoryItemService.getAllItems();
+    public InventoryItemPageResponse getAllItems(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection,
+            @RequestParam(defaultValue = "false") boolean all
+    ) {
+        return inventoryItemService.getAllItems(new InventoryItemQuery(
+                page, size, search, category, status, dateFrom, dateTo, sortField, sortDirection, all
+        ));
     }
 
     @GetMapping("/low-stock")
-    public List<InventoryItem> getLowStockItems() {
-        return inventoryItemService.getLowStockItems();
+    public InventoryItemPageResponse getLowStockItems(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sortDirection,
+            @RequestParam(defaultValue = "false") boolean all
+    ) {
+        return inventoryItemService.getLowStockItems(new InventoryItemQuery(
+                page, size, search, category, status, dateFrom, dateTo, sortField, sortDirection, all
+        ));
     }
 
     @PostMapping
-    public InventoryItem addItem(@RequestBody InventoryItem item) {
-        return inventoryItemService.addItem(item);
+    @ResponseStatus(HttpStatus.CREATED)
+    public InventoryItemResponse addItem(@Valid @RequestBody InventoryItemRequest request) {
+        return inventoryItemService.addItem(request);
     }
 
     @PutMapping("/{id}")
-    public InventoryItem updateItem(@PathVariable Long id, @RequestBody InventoryItem item) {
-        return inventoryItemService.updateItem(id, item);
+    public InventoryItemResponse updateItem(@PathVariable Long id, @Valid @RequestBody InventoryItemRequest request) {
+        return inventoryItemService.updateItem(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public String deleteItem(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteItem(@PathVariable Long id) {
         inventoryItemService.deleteItem(id);
-        return "Item deleted successfully";
     }
 }
