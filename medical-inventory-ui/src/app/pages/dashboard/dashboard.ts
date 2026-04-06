@@ -39,6 +39,8 @@ import { MatTableModule } from '@angular/material/table';
 export class Dashboard implements OnInit, OnDestroy {
   private readonly searchSubject = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
+  private allCategories: string[] = [];
+  private allStatuses: string[] = [];
 
   items: any[] = [];
   paginatedItems: any[] = [];
@@ -48,6 +50,7 @@ export class Dashboard implements OnInit, OnDestroy {
   errorMessage = '';
   isLowStockView = false;
   showReorderModal = false;
+  reorderModalIndex = 0;
   reportDate = new Date();
   printContext: 'none' | 'reorder' = 'none';
 
@@ -224,27 +227,20 @@ export class Dashboard implements OnInit, OnDestroy {
     });
   }
 
-  openReorderModal(item: any): void {
-    const suggestedOrderQuantity = this.getSuggestedOrderQuantity(item);
+  openSelectedReorderModal(): void {
+    if (this.orderItems.length === 0) {
+      this.snackBar.open('Select at least one item to reorder.', 'Close', { duration: 3000 });
+      return;
+    }
 
-    this.reorderForm = {
-      id: item?.id ?? null,
-      itemName: item?.itemName ?? item?.item_name ?? '',
-      category: item?.category ?? '',
-      quantity: toNumber(item?.quantity),
-      reorderLevel: toNumber(item?.reorderLevel ?? item?.reorder_level),
-      expiryDate: item?.expiryDate ?? item?.expiry_date ?? '',
-      supplierName: item?.supplierName ?? item?.supplier_name ?? '',
-      unitPrice: toNumber(item?.unitPrice ?? item?.unit_price),
-      suggestedOrderQuantity,
-      orderQuantity: suggestedOrderQuantity > 0 ? suggestedOrderQuantity : 1
-    };
-
+    this.reorderModalIndex = 0;
+    this.loadReorderFormFromItem(this.orderItems[this.reorderModalIndex]);
     this.showReorderModal = true;
   }
 
   closeReorderModal(): void {
     this.showReorderModal = false;
+    this.reorderModalIndex = 0;
     this.reorderForm = {
       id: null,
       itemName: '',
@@ -259,7 +255,27 @@ export class Dashboard implements OnInit, OnDestroy {
     };
   }
 
-  addToOrderList(): void {
+  isLastReorderItem(): boolean {
+    return this.reorderModalIndex >= this.orderItems.length - 1;
+  }
+
+  saveAndNextReorderItem(): void {
+    this.saveCurrentReorderItem();
+    if (this.isLastReorderItem()) {
+      this.closeReorderModal();
+      return;
+    }
+
+    this.reorderModalIndex += 1;
+    this.loadReorderFormFromItem(this.orderItems[this.reorderModalIndex]);
+  }
+
+  saveAndFinishReorder(): void {
+    this.saveCurrentReorderItem();
+    this.closeReorderModal();
+  }
+
+  private saveCurrentReorderItem(): void {
     const orderQuantity = Math.max(1, toNumber(this.reorderForm.orderQuantity));
     const suggestedOrderQuantity = Math.max(1, toNumber(this.reorderForm.suggestedOrderQuantity));
 
@@ -278,17 +294,30 @@ export class Dashboard implements OnInit, OnDestroy {
     };
 
     if (orderItem.id === null) {
-      this.orderItems.push(orderItem);
-    } else {
-      const existingItemIndex = this.orderItems.findIndex((existingItem) => existingItem.id === orderItem.id);
-      if (existingItemIndex > -1) {
-        this.orderItems[existingItemIndex] = orderItem;
-      } else {
-        this.orderItems.push(orderItem);
-      }
+      return;
     }
 
-    this.closeReorderModal();
+    const existingItemIndex = this.orderItems.findIndex((existingItem) => existingItem.id === orderItem.id);
+    if (existingItemIndex > -1) {
+      this.orderItems[existingItemIndex] = orderItem;
+    }
+  }
+
+  private loadReorderFormFromItem(item: any): void {
+    const suggestedOrderQuantity = Math.max(1, toNumber(item?.suggestedOrderQuantity ?? this.getSuggestedOrderQuantity(item)));
+
+    this.reorderForm = {
+      id: item?.id ?? null,
+      itemName: item?.itemName ?? item?.item_name ?? '',
+      category: item?.category ?? '',
+      quantity: toNumber(item?.quantity),
+      reorderLevel: toNumber(item?.reorderLevel ?? item?.reorder_level),
+      expiryDate: item?.expiryDate ?? item?.expiry_date ?? '',
+      supplierName: item?.supplierName ?? item?.supplier_name ?? '',
+      unitPrice: toNumber(item?.unitPrice ?? item?.unit_price),
+      suggestedOrderQuantity,
+      orderQuantity: Math.max(1, toNumber(item?.orderQuantity ?? suggestedOrderQuantity))
+    };
   }
 
   removeOrderItem(index: number): void {
@@ -350,6 +379,21 @@ export class Dashboard implements OnInit, OnDestroy {
     this.pageSize = Number(pageSize);
     this.currentPage = 1;
     this.loadCurrentView();
+  }
+
+  formatStatusLabel(status: string | null | undefined): string {
+    const raw = (status ?? '').trim();
+    if (!raw) {
+      return '';
+    }
+
+    const words = raw
+      .replace(/[_-]+/g, ' ')
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   }
 
   goToPage(page: number): void {
@@ -539,8 +583,12 @@ export class Dashboard implements OnInit, OnDestroy {
 
     this.items = response.items ?? [];
     this.paginatedItems = [...this.items];
-    this.availableCategories = response.availableCategories ?? [];
-    this.availableStatuses = response.availableStatuses ?? [];
+
+    this.allCategories = this.mergeDistinctOptions(this.allCategories, response.availableCategories ?? []);
+    this.allStatuses = this.mergeDistinctOptions(this.allStatuses, response.availableStatuses ?? []);
+    this.availableCategories = [...this.allCategories];
+    this.availableStatuses = [...this.allStatuses];
+
     this.totalPages = resolvedTotalPages;
     this.currentPage = (response.totalElements ?? 0) === 0 ? 1 : responsePage;
 
@@ -559,6 +607,22 @@ export class Dashboard implements OnInit, OnDestroy {
       sortField: this.sortField || undefined,
       sortDirection: this.sortField ? this.sortDirection : undefined
     };
+  }
+
+  private mergeDistinctOptions(existing: string[], incoming: string[]): string[] {
+    const seen = new Set<string>();
+    const merged: string[] = [];
+
+    for (const option of [...existing, ...incoming]) {
+      const value = (option ?? '').trim();
+      if (!value || seen.has(value)) {
+        continue;
+      }
+      seen.add(value);
+      merged.push(value);
+    }
+
+    return merged;
   }
 
 }

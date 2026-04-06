@@ -34,7 +34,7 @@
 						<mat-label>Status</mat-label>
 						<mat-select [(ngModel)]="selectedStatus" (selectionChange)="onFiltersChanged()">
 							<mat-option value="ALL">All Statuses</mat-option>
-							<mat-option *ngFor="let status of availableStatuses" [value]="status">{{ status }}</mat-option>
+							<mat-option *ngFor="let status of availableStatuses" [value]="status">{{ formatStatusLabel(status) }}</mat-option>
 						</mat-select>
 					</mat-form-field>
 
@@ -63,7 +63,7 @@
 						</mat-select>
 					</mat-form-field>
 
-					<mat-form-field appearance="outline" class="toolbar-field">
+					<mat-form-field appearance="outline" class="toolbar-field page-size-field">
 						<mat-label>Page size</mat-label>
 						<mat-select [(ngModel)]="pageSize" (selectionChange)="onPageSizeChange(pageSize)">
 							<mat-option [value]="5">5 per page</mat-option>
@@ -142,8 +142,8 @@
 								<span class="status-badge" [ngClass]="{
 									'badge-available': row.status === 'AVAILABLE' || row.status === 'Available',
 									'badge-active': row.status === 'ACTIVE' || row.status === 'Active',
-									'badge-low': row.status === 'LOW STOCK' || row.status === 'Low Stock' || row.status === 'LOW' || row.status === 'Low'
-								}">{{ row.status }}</span>
+									'badge-low': row.status === 'LOW STOCK' || row.status === 'Low Stock' || row.status === 'LOW_STOCK' || row.status === 'LOW' || row.status === 'Low'
+								}">{{ formatStatusLabel(row.status) }}</span>
 							</mat-cell>
 						</ng-container>
 						<ng-container matColumnDef="actions">
@@ -180,7 +180,6 @@
 								<th>Reorder Level</th>
 								<th>Expiry Date</th>
 								<th>Priority</th>
-								<th class="actions-column">Action</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -203,15 +202,16 @@
 										{{ calculatePriority(inventoryRecord) }}
 									</span>
 								</td>
-								<td class="row-actions">
-									<button mat-stroked-button color="primary" type="button" class="reorder-action" (click)="openReorderModal(inventoryRecord)">
-										<mat-icon>local_shipping</mat-icon>
-										Reorder Item
-									</button>
-								</td>
 							</tr>
 						</tbody>
 					</table>
+				</div>
+
+				<div class="reorder-selected-actions" *ngIf="!isLoading && isLowStockView && items.length > 0">
+					<button mat-flat-button color="primary" type="button" class="control-button" (click)="openSelectedReorderModal()" [disabled]="orderItems.length === 0">
+						<mat-icon>local_shipping</mat-icon>
+						Reorder Selected ({{ orderItems.length }})
+					</button>
 				</div>
 
 				<div class="empty-state" *ngIf="!isLoading && items.length === 0 && !errorMessage">
@@ -249,7 +249,7 @@
 
 					<div class="order-list-empty" *ngIf="orderItems.length === 0">
 						<mat-icon>assignment</mat-icon>
-						<p>No items in order list yet. Click Reorder Item to add.</p>
+						<p>No items selected yet. Select low stock items, then click Reorder Selected below the table.</p>
 					</div>
 
 					<div class="table-wrapper" *ngIf="orderItems.length > 0">
@@ -431,15 +431,16 @@
 			<div class="modal-panel reorder-modal-panel">
 				<div class="modal-header">
 					<div>
-						<div class="section-label">Reorder Item</div>
-						<h3>Create Reorder Entry</h3>
+						<div class="section-label">Reorder Selected Items</div>
+						<h3>Set Quantities</h3>
+						<p class="reorder-step-label">Item {{ reorderModalIndex + 1 }} of {{ orderItems.length }}</p>
 					</div>
 					<button mat-icon-button type="button" class="modal-close" (click)="closeReorderModal()" aria-label="Close reorder dialog">
 						<mat-icon>close</mat-icon>
 					</button>
 				</div>
 
-				<form class="form-grid" (ngSubmit)="addToOrderList()">
+				<form class="form-grid">
 					<mat-form-field appearance="outline">
 						<mat-label>Item Name</mat-label>
 						<input matInput type="text" name="reorderItemName" [(ngModel)]="reorderForm.itemName" readonly />
@@ -486,9 +487,13 @@
 					</mat-form-field>
 
 					<div class="form-actions">
-						<button mat-flat-button color="primary" type="submit">
-							<mat-icon>add_shopping_cart</mat-icon>
-							Add to Order List
+						<button mat-flat-button color="primary" type="button" *ngIf="!isLastReorderItem()" (click)="saveAndNextReorderItem()">
+							<mat-icon>navigate_next</mat-icon>
+							Save & Next
+						</button>
+						<button mat-flat-button color="primary" type="button" *ngIf="isLastReorderItem()" (click)="saveAndFinishReorder()">
+							<mat-icon>done</mat-icon>
+							Save & Finish
 						</button>
 						<button mat-stroked-button color="primary" type="button" (click)="closeReorderModal()">Cancel</button>
 					</div>
