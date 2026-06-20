@@ -1,37 +1,38 @@
 <div class="shell-page">
   <header class="shell-header no-print">
     <div class="shell-brand">
-      <div class="shell-eyebrow">Medical Inventory</div>
-      <h1>Operations Workspace</h1>
+      <h1>Operational Workspace</h1>
     </div>
 
-    <nav class="shell-nav" aria-label="Primary">
-      <a
-        mat-stroked-button
-        color="primary"
-        routerLink="/dashboard"
-        routerLinkActive="is-active"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >
-        <mat-icon>inventory_2</mat-icon>
-        Dashboard
-      </a>
-      <a
-        mat-stroked-button
-        color="primary"
-        routerLink="/reports"
-        routerLinkActive="is-active"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >
-        <mat-icon>assessment</mat-icon>
-        Reports
-      </a>
-    </nav>
+    <div class="shell-actions">
+      <nav class="shell-nav" aria-label="Primary">
+        <a
+          mat-button
+          routerLink="/dashboard"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="shell-link"
+        >
+          <mat-icon>inventory_2</mat-icon>
+          Dashboard
+        </a>
+        <a
+          mat-button
+          routerLink="/reports"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="shell-link"
+        >
+          <mat-icon>assessment</mat-icon>
+          Reports
+        </a>
+      </nav>
 
-    <button mat-stroked-button color="primary" type="button" class="logout-button" (click)="logout()">
-      <mat-icon>logout</mat-icon>
-      Logout
-    </button>
+      <button mat-button type="button" class="shell-link logout-link" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Logout
+      </button>
+    </div>
   </header>
 
   <router-outlet></router-outlet>
